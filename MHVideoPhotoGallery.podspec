@@ -9,12 +9,11 @@ Pod::Spec.new do |s|
   s.summary      = 'Gallery for iOS 7 Devices.'
   s.platform     =  :ios
   s.source = {
-    :git => 'https://github.com/mariohahn/MHVideoPhotoGallery.git',
-    :tag => 'v2.1.3'
+    :git => 'https://github.com/mariohahn/MHVideoPhotoGallery.git'
   }
 
   s.dependency 'SDWebImage'
-  s.dependency 'TTTAttributedLabel', '1.13.3'
+  s.dependency 'TTTAttributedLabel'
   s.dependency 'Masonry'
 
   s.frameworks = 'MessageUI','Social', 'ImageIO', 'QuartzCore', 'Accelerate','CoreMedia', 'AVFoundation','MediaPlayer'
