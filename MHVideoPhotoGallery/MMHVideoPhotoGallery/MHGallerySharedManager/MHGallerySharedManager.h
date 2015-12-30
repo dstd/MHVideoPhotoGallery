@@ -78,6 +78,11 @@ typedef NS_ENUM(NSUInteger, MHYoutubeThumbQuality) {
  */
 @property (nonatomic,assign) MHYoutubeVideoQuality youtubeVideoQuality;
 
+/**
+ *  if YES, all videos specified via direct link will be preloaded and cached before playback
+ */
+@property (nonatomic) BOOL preloadAndCacheVideos;
+
 + (MHGallerySharedManager *)sharedManager;
 /**
  *  You can create a Thumbnail from a Video, you can create it from Videos from a Webserver, Youtube and Vimeo

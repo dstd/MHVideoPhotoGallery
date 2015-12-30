@@ -50,6 +50,8 @@
 {
     [super viewDidLoad];
     
+    [MHGallerySharedManager sharedManager].preloadAndCacheVideos = YES;
+    
     
     self.title = @"CollectionView";
     
@@ -62,7 +64,10 @@
     
     MHGalleryItem *tailored3 = [MHGalleryItem.alloc initWithURL:@"https://dl.dropboxusercontent.com/u/17911939/momu%26meParty.mp4"
                                                     galleryType:MHGalleryTypeVideo];
-    
+
+    MHGalleryItem *tailored4 = [MHGalleryItem.alloc initWithURL:@"http://uds.ak.o.brightcove.com/57838016001/57838016001_734484874001_Sea-SplashingWater.mp4"
+                                                    galleryType:MHGalleryTypeVideo];
+
     NSShadow *shadow = [[NSShadow alloc] init];
     shadow.shadowColor = [UIColor blackColor];
     shadow.shadowBlurRadius = 0.0;
@@ -93,7 +98,7 @@
     tailored.attributedTitle = title;
     tailored2.attributedString = string2;
 
-    self.galleryDataSource = @[@[tailored,tailored2]];
+    self.galleryDataSource = @[@[tailored,tailored2,tailored4]];
     self.tableView.backgroundColor = [UIColor colorWithRed:0.83 green:0.84 blue:0.86 alpha:1];
     [self.tableView reloadData];
     

@@ -10,7 +10,20 @@
 #import "MHGallerySharedManagerPrivate.h"
 #import "SDWebImageManager.h"
 
+#import	<CommonCrypto/CommonHMAC.h>
+#import	<CommonCrypto/CommonDigest.h>
+
+@interface CachingJob: NSObject
+@property (nonatomic) NSURLSessionDownloadTask *worker;
+@property (nonatomic, copy) void (^succeedBlock)(NSURL *URL,NSError *error);
+@end
+@implementation CachingJob
+@end
+
 @implementation MHGallerySharedManager
+{
+    NSMutableDictionary *_cachingJobs;
+}
 
 + (MHGallerySharedManager *)sharedManager{
     static MHGallerySharedManager *sharedManagerInstance = nil;
@@ -202,6 +215,63 @@
     return nil;
 }
 
+-(NSString*)cachePathForURL:(NSURL*)url
+{
+    NSString* s = url.absoluteString;
+    const char *pstr = s.UTF8String;
+    unsigned char result[CC_MD5_DIGEST_LENGTH];
+    CC_MD5(pstr, (CC_LONG)strlen(pstr), result);
+    
+    NSString* filename = [NSString stringWithFormat: @"MHVPGCache_%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X.mp4",
+                          result[0], result[1], result[2], result[3], result[4], result[5], result[6], result[7], result[8], result[9], result[10], result[11], result[12], result[13], result[14], result[15]];
+    
+    NSString* cachePath = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject];
+    return [cachePath stringByAppendingPathComponent:filename];
+}
+
+-(void)getCachedURLforMediaPlayer:(NSURL*)URL
+                      successBlock:(void (^)(NSURL *URL,NSError *error))succeedBlock {
+    
+    NSString *tempPath = [self cachePathForURL:URL];
+    
+    CachingJob *job = _cachingJobs[tempPath];
+    if (job) {
+        job.succeedBlock = succeedBlock;
+        return;
+    }
+
+    if ([[NSFileManager defaultManager] fileExistsAtPath:tempPath]) {
+        if (succeedBlock)
+            succeedBlock([NSURL fileURLWithPath:tempPath], nil);
+        return;
+    }
+
+    job = [CachingJob new];
+    job.succeedBlock = succeedBlock;
+    _cachingJobs[tempPath] = job;
+    
+    NSURLSessionDownloadTask *dl = [[NSURLSession sharedSession]
+                                    downloadTaskWithURL:URL
+                                    completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error)
+                                    {
+                                        NSURL *tempURL = [NSURL fileURLWithPath:tempPath];
+                                        [_cachingJobs removeObjectForKey:tempPath];
+                                        
+                                        if (!error) {
+                                            NSError *fileError = nil;
+                                            [[NSFileManager defaultManager] moveItemAtURL:location toURL:tempURL error:&fileError];
+                                        }
+                                        
+                                        if (job.succeedBlock)
+                                            dispatch_async(dispatch_get_main_queue(), ^{
+                                                job.succeedBlock(error ? nil : tempURL, error);
+                                            });
+                                    }];
+    job.worker = dl;
+    [dl resume];
+
+}
+
 -(void)getURLForMediaPlayer:(NSString*)URLString
                successBlock:(void (^)(NSURL *URL,NSError *error))succeedBlock{
     
@@ -213,7 +283,9 @@
         [self getYoutubeURLforMediaPlayer:URLString successBlock:^(NSURL *URL, NSError *error) {
             succeedBlock(URL,error);
         }];
-    }else{
+    } else if (self.preloadAndCacheVideos) {
+        [self getCachedURLforMediaPlayer:[NSURL URLWithString:URLString] successBlock:succeedBlock];
+    } else {
         succeedBlock([NSURL URLWithString:URLString],nil);
     }
     
